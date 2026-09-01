@@ -1,0 +1,140 @@
+# Continuous integration for the Python server SDK.
+#
+# This workflow IS the merge gate described in Founding CLAUDE.md §7.5 and §9. We cannot
+# recall a shipped SDK: anything that gets past this gate runs inside customers' processes
+# until they upgrade on their own schedule.
+#
+# NOTE for whoever adds the branch ruleset: add these three job names as required checks
+# *after* this file lands on `development` (docs/compliance/change-management.md in
+# FortressFlag_Backend). Requiring a check that has never reported blocks every merge
+# permanently.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [development]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    # Both ends of the supported window run in THIS one job, sequentially, rather than as a
+    # matrix: a matrix leg reports its own check name, and the required-check list in the
+    # branch ruleset names exactly one (the Go SDK's arrangement, ported). The floor (3.11,
+    # the .python-version) runs the full gate; the newest release re-runs the tests to
+    # catch anything its runtime surfaces differently.
+    name: Build, lint & unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          # .python-version is the single source of truth for the FLOOR. The second
+          # setup-python below names the newest release literally — the one place a
+          # literal is accepted, because the file can only name one version.
+          python-version-file: .python-version
+
+      - name: Install (floor)
+        run: python -m pip install --quiet -e '.[dev]'
+
+      - name: Lint (ruff check + format)
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Types (mypy strict)
+        run: mypy
+
+      - name: Unit tests (3.11)
+        run: python -m pytest -q
+
+      - name: Zero runtime dependencies (ADR-0018)
+        # `project.dependencies` must be empty — its emptiness is the gate, the analogue of
+        # the Go repo's go.sum-must-not-exist check.
+        run: |
+          python - << 'PY'
+          import sys, tomllib
+          with open("pyproject.toml", "rb") as f:
+              deps = tomllib.load(f)["project"]["dependencies"]
+          if deps:
+              print(f"::error::pyproject.toml has runtime dependencies: {deps} — the list stays empty (ADR-0018).")
+              sys.exit(1)
+          print("Runtime dependency list is empty.")
+          PY
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      - name: Install (newest)
+        run: python -m pip install --quiet -e '.[dev]'
+
+      - name: Unit tests (3.14)
+        run: python -m pytest -q
+
+  crash-primitives:
+    name: No crash primitives in library sources
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Grep for crash primitives
+        # Deliberately a dumb grep, and deliberately separate from ruff. The lint config is
+        # one pull request away from being relaxed with a plausible-looking justification;
+        # this is harder to weaken quietly. Call-position forms only. `raise` is NOT in
+        # this list on purpose: the constructor legitimately raises, and a grep that needs
+        # an exemption is a grep that gets weakened — the never-raise-from-getters promise
+        # is the chaos suite's job.
+        run: |
+          if grep -rnE '\bsys\.exit\(|\bos\._exit\(|\bos\.abort\(' src/; then
+            echo "::error::Crash primitives found in src/. The SDK must never kill a customer's process."
+            exit 1
+          fi
+          echo "No crash primitives in library sources."
+
+  security:
+    name: Security scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # gitleaks needs history to scan commits, not just the working tree.
+          fetch-depth: 0
+
+      - name: gitleaks
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          # SHA-256 of gitleaks_8.30.1_linux_x64.tar.gz, from the release's published
+          # checksums.txt. Bump both lines together — a version bumped without its checksum
+          # fails loudly here, which is intended.
+          #
+          # Deliberately NOT gitleaks/gitleaks-action@v2: that action requires a paid
+          # licence for organisation-owned repositories. This matches the backend and every
+          # SDK security job exactly.
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          # pipefail matters: without it a curl that dies mid-stream is masked by a tar
+          # that happens to succeed on the truncated prefix.
+          set -euo pipefail
+          curl -sSfL -o "$RUNNER_TEMP/gitleaks.tar.gz" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          echo "${GITLEAKS_SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum --check --strict -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+          # Unpacked outside the checkout so the scanner never sees its own artefacts.
+          "$RUNNER_TEMP/gitleaks" git . --redact --no-banner
+
+      - name: No checked-in signing keys
+        run: |
+          if grep -rlE 'BEGIN (RSA |EC |OPENSSH |PGP )?PRIVATE KEY' . --exclude-dir=.git; then
+            echo "::error::A private key is checked into this repository."
+            exit 1
+          fi
+          echo "No private keys checked in."
