@@ -56,7 +56,7 @@ jobs:
       - name: Unit tests (3.11)
         run: python -m pytest -q
 
-      - name: Zero runtime dependencies (ADR-0018)
+      - name: Zero runtime dependencies (ADR-0020)
         # `project.dependencies` must be empty — its emptiness is the gate, the analogue of
         # the Go repo's go.sum-must-not-exist check.
         run: |
@@ -65,7 +65,7 @@ jobs:
           with open("pyproject.toml", "rb") as f:
               deps = tomllib.load(f)["project"]["dependencies"]
           if deps:
-              print(f"::error::pyproject.toml has runtime dependencies: {deps} — the list stays empty (ADR-0018).")
+              print(f"::error::pyproject.toml has runtime dependencies: {deps} — the list stays empty (ADR-0020).")
               sys.exit(1)
           print("Runtime dependency list is empty.")
           PY
