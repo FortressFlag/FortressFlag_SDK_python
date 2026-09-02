@@ -12,7 +12,7 @@
 
 ## 1. This Repo
 
-The **Python server SDK** (backend ADR-0018, inheriting ADR-0016's decisions): pure stdlib,
+The **Python server SDK** (backend ADR-0020, inheriting ADR-0016's decisions): pure stdlib,
 sync API. It embeds in a customer's backend, downloads the full evaluable ruleset for one
 project + environment via an `ffs_` server key (`GET /v1/server/ruleset`), and evaluates
 flags **locally, in-process**. It implements
@@ -54,7 +54,7 @@ never transmitted. The context key is an **opaque string** — never validated a
 client SDKs' `dev_`/`sim_` shape, never trimmed or normalised: the bucket hashes exactly the
 UTF-8 bytes given, or cohorts flip between components.
 
-## 5. Zero runtime dependencies (ADR-0018)
+## 5. Zero runtime dependencies (ADR-0020)
 
 `pyproject.toml`'s `dependencies` list is **empty, and that emptiness is the gate** — CI
 asserts it. Everything the SDK needs is stdlib: `urllib.request`, `hashlib`, `json`,
@@ -70,7 +70,7 @@ contract's 30; backoff cap 1800 s with ±20% jitter ON THE SUCCESS PATH TOO; red
 refused (an opener with no redirect handler — a followed redirect could replay the
 Authorization header); bodies capped at 1 MiB.
 
-## 7. Concurrency model (ADR-0018)
+## 7. Concurrency model (ADR-0020)
 
 The snapshot is published by a single attribute assignment (atomic under the GIL, and a
 plain reference swap under free-threading); getters read it ONCE into a local and evaluate

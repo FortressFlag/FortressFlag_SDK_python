@@ -1,5 +1,5 @@
 # Weekly, grouped, labeled. The pip entry watches the dev extra only in practice: the
-# runtime dependency policy is ZERO dependencies (ADR-0018), `project.dependencies` is
+# runtime dependency policy is ZERO dependencies (ADR-0020), `project.dependencies` is
 # empty, and CI fails if that changes. Watching the dev tree is still SOC 2 CC7.1 hygiene —
 # the toolchain builds what ships.
 version: 2

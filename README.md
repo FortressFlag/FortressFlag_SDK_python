@@ -1,6 +1,6 @@
 # FortressFlag Python SDK
 
-FortressFlag's **Python server SDK** (backend ADR-0018): pure stdlib, zero dependencies.
+FortressFlag's **Python server SDK** (backend ADR-0020): pure stdlib, zero dependencies.
 Polls the server data plane's ruleset export with an `ffs_` server key and evaluates flags
 **locally, in-process** — no network hop per flag check.
 

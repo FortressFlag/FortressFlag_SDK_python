@@ -7,7 +7,7 @@ name = "fortressflag"
 version = "0.1.0"
 description = "FortressFlag Python server SDK — pure stdlib, local in-process flag evaluation"
 requires-python = ">=3.11"
-# ZERO runtime dependencies (ADR-0018): this list is empty and stays empty — the emptiness
+# ZERO runtime dependencies (ADR-0020): this list is empty and stays empty — the emptiness
 # is the gate, and CI asserts it. A runtime dependency is a supply-chain decision the user
 # owns: ask, don't add.
 dependencies = []
@@ -28,7 +28,7 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 # flake8-builtins (A) is on deliberately: getters are bool_value/string_value/number_value
-# precisely because builtin-shadowing method names were rejected (ADR-0018).
+# precisely because builtin-shadowing method names were rejected (ADR-0020).
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "RET", "SIM"]
 
 [tool.mypy]
