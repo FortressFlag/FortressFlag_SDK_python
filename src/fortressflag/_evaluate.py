@@ -35,7 +35,8 @@ def evaluate_flag(
       across rules. An EMPTY condition list holds vacuously (the terminal "everyone else"
       rule).
     - A condition whose tag key is absent from the context's tags does not hold; never an
-      error. eq/neq are exact string comparison, case-sensitive, no trimming. The semver
+      error. eq/neq are exact string comparison and contains is substring match (backend
+      ADR-0023) — all case-sensitive, no trimming. The semver
       operators compare via parse_version; an unparseable value on EITHER side makes the
       condition not hold. An operator this build does not recognise does not hold — fail
       closed into the default (Founding §8.3).
@@ -84,6 +85,8 @@ def _condition_holds(condition: FlagCondition, tag_value: str) -> bool:
         return tag_value == condition.value
     if operator == "neq":
         return tag_value != condition.value
+    if operator == "contains":
+        return condition.value in tag_value
     if operator in _SEMVER_OPERATORS:
         context = parse_version(tag_value)
         if context is None:
