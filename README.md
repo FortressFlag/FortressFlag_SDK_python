@@ -9,7 +9,7 @@ import fortressflag
 
 client = fortressflag.create(fortressflag.Configuration(key=os.environ["FF_SERVER_KEY"]))
 # ^ the one place the SDK raises
-client.start(timeout=15.0)   # returns at the first ruleset (or the deadline); never fatal
+client.start(timeout=15.0)  # returns at the first ruleset (or the deadline); never fatal
 enabled = client.bool_value(
     "dark-mode",
     fortressflag.Context(key="user-42", tags={"cohort": "beta"}),
