@@ -1,7 +1,7 @@
 """The wire envelope (server-contract-v1.md): the client envelope design, reused.
 
-``sig`` is omitted until backend M4 ships; when present it is a detached signature over the
-payload's exact base64url bytes.
+``sig`` is a detached Ed25519 signature over the payload's exact bytes (backend ADR-0025);
+only a local development backend without signing keys omits it.
 """
 
 from __future__ import annotations
@@ -49,8 +49,8 @@ def decode_base64url(s: str) -> bytes | None:
 @dataclass(frozen=True, slots=True)
 class WireEnvelope:
     payload: str
-    #: None means "absent or null" — both legal until M4; "" is present-but-empty, which a
-    #: required policy rejects as missing.
+    #: None means "absent or null" — legal only under SIGNATURE_DISABLED; "" is
+    #: present-but-empty, which a required policy rejects as missing.
     sig: str | None
 
 

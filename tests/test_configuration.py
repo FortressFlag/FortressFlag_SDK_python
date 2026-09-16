@@ -50,3 +50,13 @@ def test_defaults_and_the_poll_floor() -> None:
 def test_a_trailing_slash_on_base_url_is_trimmed() -> None:
     resolved = resolve_configuration(Configuration(key="ffs_dev_k12345", base_url="http://x/"))
     assert resolved.base_url == "http://x"
+
+
+def test_the_production_trust_store_is_one_raw_32_byte_key_and_the_default() -> None:
+    from fortressflag._configuration import FORTRESSFLAG_PRODUCTION, SIGNATURE_DISABLED
+
+    assert list(FORTRESSFLAG_PRODUCTION) == ["prod-2026-09-k1"]
+    assert len(FORTRESSFLAG_PRODUCTION["prod-2026-09-k1"]) == 32
+    default = Configuration(key="ffs_dev_k12345").signature
+    assert default.required and dict(default.trusted_keys) == dict(FORTRESSFLAG_PRODUCTION)
+    assert not SIGNATURE_DISABLED.required

@@ -13,6 +13,7 @@ import enum
 from dataclasses import dataclass
 from typing import Final
 
+from . import _ed25519
 from ._configuration import SignaturePolicy
 from ._envelope import (
     SUPPORTED_SERVER_CONTRACT_VERSION,
@@ -90,7 +91,7 @@ def verify_envelope(
         return None, RejectionCode.MALFORMED_ENVELOPE
 
     if policy.required:
-        code = _check_signature(parsed.envelope.sig, policy)
+        code = check_signature(parsed.envelope.sig, parsed.payload_bytes, policy)
         if code is not None:
             return None, code
 
@@ -121,21 +122,15 @@ def verify_envelope(
     return VerifiedEnvelope(raw=raw, payload=payload), None
 
 
-def _check_signature(sig: str | None, policy: SignaturePolicy) -> RejectionCode | None:
-    """The signature PLUMBING with the crypto primitive deliberately absent.
-
-    Backend M4's algorithm ADR has not shipped (ADR-0015/0016). A missing signature under a
-    required policy is rejected (fail closed, the shipped client-SDK posture byte for
-    byte); the ``algorithm:keyID:signature`` splitting and trust-store lookup are real; and
-    a signature that survives those checks is still rejected as BAD_SIGNATURE, because no
-    primitive exists to accept it. When M4 lands, its ADR decides the primitive and this is
-    where it goes — with a real trust store, this stub can reject valid payloads but can
-    never accept a forged one.
-    """
+def check_signature(
+    sig: str | None, payload_bytes: bytes, policy: SignaturePolicy
+) -> RejectionCode | None:
+    """``ed25519:<keyID>:<unpadded base64url>`` over ``payload_bytes`` exactly as transmitted
+    (backend ADR-0025) — never a re-serialisation, never a subset of fields."""
     if sig is None or sig == "":
         return RejectionCode.MISSING_SIGNATURE
-    # Split at the first two colons so a key ID may contain a colon later without a
-    # breaking parse change.
+    # Split at the first two colons: the SIGNATURE may contain extra colons, the key ID
+    # never can — the backend refuses a key ID with one (contract-v1 §Signing keys).
     first = sig.find(":")
     second = sig.find(":", first + 1) if first >= 0 else -1
     if first < 0 or second < 0:
@@ -149,6 +144,12 @@ def _check_signature(sig: str | None, policy: SignaturePolicy) -> RejectionCode 
         return RejectionCode.MALFORMED_SIGNATURE
     if key_id not in policy.trusted_keys:
         return RejectionCode.UNKNOWN_KEY_ID
-    # The primitive gap, made explicit: the payload bytes are deliberately unused beyond
-    # this point until M4 supplies the algorithm.
-    return RejectionCode.BAD_SIGNATURE
+    public_key = policy.trusted_keys[key_id]
+    if len(public_key) != _ed25519.PUBLIC_KEY_SIZE:
+        # A malformed key in our own trust store: "cannot verify with this key", so one
+        # bad entry does not disable a rotation set (the iOS verifier's rule).
+        return RejectionCode.UNKNOWN_KEY_ID
+    raw_signature = decode_base64url(signature)
+    if raw_signature is None or not _ed25519.verify(public_key, payload_bytes, raw_signature):
+        return RejectionCode.BAD_SIGNATURE
+    return None

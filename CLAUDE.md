@@ -30,6 +30,11 @@ flags **locally, in-process**. It implements
 - `create()` is the ONE place the SDK may raise (`MalformedKeyError`, before anything
   serves). Getters always answer; every failure resolves to the caller's fallback with the
   reason on `diagnostics()`. There is no compiled-in `False` tier (ADR-0016).
+- **Signatures verify for real, fail-closed by default** (ADR-0025): `Configuration.signature`
+  defaults to required-with-`FORTRESSFLAG_PRODUCTION`; `SIGNATURE_DISABLED` is the explicit
+  local-dev opt-out. The Ed25519 verifier is vendored in `_ed25519.py` (verify-only, RFC
+  8032 arithmetic on `int`, pinned to the RFC §7.1 vectors) — one code path, no platform
+  provider, no dependency. Never add a fallback to a crypto library.
 - The last verified ruleset serves through any outage indefinitely. **Expiry governs
   freshness, never validity**: a live response past `expiresAt` is refused; a cache-file
   load never is.
@@ -89,6 +94,6 @@ design** (Go's atomic.Pointer, translated).
   are backward-compatibility sacred** (Founding §5, §8.3).
 - Local gate, identical to CI:
   `ruff check . && ruff format --check . && mypy && python -m pytest`.
-- `src/fortressflag/_vectors/*.json` are verbatim vendored copies; the canonical home is
+- `src/fortressflag/_vectors/*.json` (evaluation, buckets, signing) are verbatim vendored copies; the canonical home is
   `FortressFlag_Standards/vectors/`. A vector change is a wire-contract change arriving via
   a backend ADR — never a test fix, and never edited only here.

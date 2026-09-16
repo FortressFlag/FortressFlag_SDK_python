@@ -28,6 +28,9 @@ def main() -> int:
                 key=env("FF_SERVER_KEY", SEED_KEY),
                 base_url=env("FF_BASE_URL", "http://localhost:8080"),
                 cache_path=os.environ.get("FF_CACHE_PATH", ""),
+                # A local backend without FF_SIGNING_* serves unsigned envelopes; the
+                # explicit opt-out (ADR-0025). Never in production.
+                signature=fortressflag.SIGNATURE_DISABLED,
             )
         )
     except fortressflag.MalformedKeyError as error:
