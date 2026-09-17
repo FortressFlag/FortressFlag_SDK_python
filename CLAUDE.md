@@ -1,10 +1,11 @@
 # FortressFlag_SDK_python — Agent & Contributor Guide
 
 > **This repo inherits the FortressFlag founding principles.** The canonical document lives in
-> the backend repo — read it before design decisions:
+> the backend repo (`FortressFlag_Backend/CLAUDE.md`, the founding document) — read it before
+> design decisions.
 >
-> - GitHub: <https://github.com/FortressFlag/FortressFlag_Backend/blob/development/CLAUDE.md>
-> - Local clone: `~/Workspace/FortressFlag_Backend/CLAUDE.md`
+> ADR-nnnn refers to FortressFlag's internal architecture decision records. The public contract
+> every SDK implements is `FortressFlag_Standards`; decision records are not published.
 >
 > Priority order when in doubt: **Security → Compliance → Efficiency → Cost.**
 
@@ -64,7 +65,7 @@ UTF-8 bytes given, or cohorts flip between components.
 `pyproject.toml`'s `dependencies` list is **empty, and that emptiness is the gate** — CI
 asserts it. Everything the SDK needs is stdlib: `urllib.request`, `hashlib`, `json`,
 `base64`, `threading`, `tempfile`, `os`. The `dev` extra is tooling and never ships. A
-runtime dependency is a supply-chain decision the user owns: **ask, don't add.**
+runtime dependency is a supply-chain decision the maintainer owns: **ask, don't add.**
 
 ## 6. Network surface
 
