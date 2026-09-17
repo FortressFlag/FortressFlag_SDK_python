@@ -113,11 +113,11 @@ def test_non_rfc3339_timestamps_reject() -> None:
         ("ed25519:AAAA", RejectionCode.MALFORMED_SIGNATURE),
         ("p256:k1:AAAA", RejectionCode.UNSUPPORTED_SIGNATURE_ALGORITHM),
         ("ed25519:unknown:AAAA", RejectionCode.UNKNOWN_KEY_ID),
-        # Well-formed, known key — still rejected: no primitive exists to accept it.
+        # Well-formed, known key, three bytes of "signature" — the primitive refuses it.
         ("ed25519:k1:AAAA", RejectionCode.BAD_SIGNATURE),
     ],
 )
-def test_the_fail_closed_stub(sig: str | None, expected: RejectionCode) -> None:
+def test_signature_shapes_reject_fail_closed(sig: str | None, expected: RejectionCode) -> None:
     policy = signature_required({"k1": bytes(32)})
     _, code = verify_envelope(fixture_envelope(fixture_payload(), sig=sig), policy, LIVE)
     assert code is expected

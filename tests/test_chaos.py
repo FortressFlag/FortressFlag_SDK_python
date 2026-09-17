@@ -16,6 +16,7 @@ from tests.support import FIXTURE_NOW_S, fixture_envelope, fixture_payload
 
 from fortressflag._client import Client, Context
 from fortressflag._configuration import (
+    SIGNATURE_DISABLED,
     Configuration,
     resolve_configuration,
     signature_required,
@@ -98,6 +99,7 @@ def good_fetch() -> FetchOutcome:
 
 
 def make_client(fetcher: object, **config: object) -> Client:
+    config.setdefault("signature", SIGNATURE_DISABLED)  # the fixtures are unsigned
     resolved = resolve_configuration(Configuration(key="ffs_dev_k", **config))  # type: ignore[arg-type]
     return Client(
         resolved, fetcher, now_s=lambda: FIXTURE_NOW_S, random_in_range=lambda a, b: (a + b) / 2

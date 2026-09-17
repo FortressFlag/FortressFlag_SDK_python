@@ -50,17 +50,30 @@ class SignaturePolicy:
     trusted_keys: Mapping[str, bytes] = field(default_factory=dict)
 
 
-#: Accepts unsigned envelopes — the only workable policy until the backend's signing
-#: milestone (M4) ships, and therefore the default. A named, greppable value rather than a
-#: silent fallback, so "why is this not verifying?" has an answer in the customer's source.
+#: Accepts unsigned envelopes. The explicit opt-out for a local development backend that
+#: runs without ``FF_SIGNING_*`` (ADR-0025) — a named, greppable value rather than a silent
+#: fallback, so "why is this not verifying?" has an answer in the customer's source. Never
+#: the default.
 SIGNATURE_DISABLED: Final[SignaturePolicy] = SignaturePolicy()
+
+#: The raw 32-byte Ed25519 public keys FortressFlag signs PRODUCTION rulesets with, by key
+#: ID (ADR-0025; also published on the docs page ``concepts/payload-signing``). Rotation
+#: adds key N+1 here before the backend switches to it. Staging signs with its own key,
+#: never listed here: pass it to ``signature_required`` explicitly.
+#: ADR-0025, minted 2026-09-16: base64url EaEF8MHNu3onHxemTg3-OcrKrq7ODsZIVEp-IVV2ojg
+FORTRESSFLAG_PRODUCTION: Final[Mapping[str, bytes]] = MappingProxyType(
+    {
+        "prod-2026-09-k1": bytes.fromhex(
+            "11a105f0c1cdbb7a271f17a64e0dfe39cacaaeaece0ec648544a7e215576a238"
+        ),
+    }
+)
 
 
 def signature_required(trusted_keys: Mapping[str, bytes]) -> SignaturePolicy:
-    """Reject every envelope whose signature cannot be verified against trusted_keys.
+    """Reject every envelope whose signature does not verify against trusted_keys.
 
-    INCLUDING, until backend M4 ships a signing algorithm, every envelope there is: the
-    verification stub can reject a forgery but can never accept one. Rejection is never
+    Pure Ed25519 over the exact payload bytes (backend ADR-0025). Rejection is never
     fatal — the SDK keeps serving its last verified snapshot. The mapping is copied and
     frozen.
     """
@@ -82,14 +95,17 @@ class Configuration:
     server process may write is the operator's call, and this SDK writes nothing unasked
     (ADR-0016). The file holds only the ruleset envelope, never the key and never any
     evaluation context. ``http_timeout_s`` is short on purpose: a slow ruleset fetch must
-    never become the customer's problem — the snapshot keeps answering.
+    never become the customer's problem — the snapshot keeps answering. ``signature``
+    defaults to required-with-production: every envelope must carry a signature that
+    verifies against ``FORTRESSFLAG_PRODUCTION`` (fail closed, ADR-0025). Against a local
+    backend without signing keys pass ``SIGNATURE_DISABLED`` explicitly.
     """
 
     key: str
     base_url: str = _DEFAULT_BASE_URL
     poll_interval_s: float = _DEFAULT_POLL_INTERVAL_S
     cache_path: str = ""
-    signature: SignaturePolicy = SIGNATURE_DISABLED
+    signature: SignaturePolicy = signature_required(FORTRESSFLAG_PRODUCTION)
     http_timeout_s: float = _DEFAULT_HTTP_TIMEOUT_S
 
 

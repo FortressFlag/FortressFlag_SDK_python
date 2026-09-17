@@ -21,8 +21,11 @@ client.close()
 It implements
 [`FortressFlag_Standards/contracts/server-contract-v1.md`](https://github.com/FortressFlag/FortressFlag_Standards/blob/development/contracts/server-contract-v1.md)
 — owned by `FortressFlag_Backend`, changed only via ADRs there. Zero runtime dependencies;
-after construction, evaluation never raises. See `CLAUDE.md` for the rules this repo holds
-itself to.
+after construction, evaluation never raises. Every ruleset carries an Ed25519 signature that
+the SDK verifies against FortressFlag's production key before a single flag is served (backend
+ADR-0025) — the verifier is vendored, so the dependency list stays empty. Against a local
+backend that runs without signing keys, pass `signature=fortressflag.SIGNATURE_DISABLED`
+explicitly. See `CLAUDE.md` for the rules this repo holds itself to.
 
 **The `ffs_` server key is a genuine secret** — treat it like a database password. Store it
 in an environment variable or a secret manager, never in code or logs.

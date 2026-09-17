@@ -11,6 +11,7 @@ every failure resolves to the caller's fallback with the reason on ``diagnostics
 
 from ._client import Client, Context, Diagnostics, ResolutionCounters, StartOutcome
 from ._configuration import (
+    FORTRESSFLAG_PRODUCTION,
     SIGNATURE_DISABLED,
     Configuration,
     MalformedKeyError,
@@ -21,6 +22,7 @@ from ._configuration import (
 from ._transport import Transport
 
 __all__ = [
+    "FORTRESSFLAG_PRODUCTION",
     "SIGNATURE_DISABLED",
     "Client",
     "Configuration",
