@@ -4,13 +4,29 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fortressflag"
-version = "0.1.0"
+version = "1.0.0"
 description = "FortressFlag Python server SDK — pure stdlib, local in-process flag evaluation"
+readme = "README.md"
+license = "Apache-2.0"
 requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Typing :: Typed",
+]
 # ZERO runtime dependencies (ADR-0020): this list is empty and stays empty — the emptiness
-# is the gate, and CI asserts it. A runtime dependency is a supply-chain decision the user
-# owns: ask, don't add.
+# is the gate, and CI asserts it. A runtime dependency is a supply-chain decision the
+# maintainer owns: ask, don't add.
 dependencies = []
+
+[project.urls]
+Homepage = "https://docs.fortressflag.com/sdks/python/"
+Repository = "https://github.com/FortressFlag/FortressFlag_SDK_python"
+Documentation = "https://docs.fortressflag.com/sdks/python/"
 
 [project.optional-dependencies]
 dev = [
